@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моделирование нефтегазовой добычи</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            background-color: white;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        .status-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            height: 250px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+        }
+        .nav-tabs .nav-link {
+            font-weight: 500;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Моделирование нефтегазовой добычи</h1>
+
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab">Создание</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="operations-tab" data-bs-toggle="tab" data-bs-target="#operations" type="button" role="tab">Операции</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab">Статистика</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Вкладка создания -->
+            <div class="tab-pane fade show active" id="create" role="tabpanel">
+                <h3 class="mb-4">Создание месторождения</h3>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="reservoirName" class="form-label">Название месторождения</label>
+                            <input type="text" class="form-control" id="reservoirName" placeholder="Уральское месторождение">
+                        </div>
+                        <div class="mb-3">
+                            <label for="initialPressure" class="form-label">Начальное давление (атм)</label>
+                            <input type="number" class="form-control" id="initialPressure" step="0.1" placeholder="250">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="oilVolume" class="form-label">Объем нефти (тонн)</label>
+                            <input type="number" class="form-control" id="oilVolume" step="0.1" placeholder="5000000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="gasVolume" class="form-label">Объем газа (м³)</label>
+                            <input type="number" class="form-control" id="gasVolume" step="0.1" placeholder="3000000000">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="createReservoir()">Создать месторождение</button>
+
+                <hr class="my-4">
+
+                <h3 class="mb-4">Создание скважины</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="wellName" class="form-label">Название скважины</label>
+                            <input type="text" class="form-control" id="wellName" placeholder="Скважина №1">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="maxProduction" class="form-label">Макс. добыча (тонн/сутки)</label>
+                            <input type="number" class="form-control" id="maxProduction" step="0.1" placeholder="500">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="createWell()">Создать скважину</button>
+            </div>
+
+            <!-- Вкладка операций -->
+            <div class="tab-pane fade" id="operations" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="status-box">
+                            <h5>Текущий статус</h5>
+                            <div id="statusText">Создайте месторождение и скважину для начала работы</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <button class="btn btn-info w-100 mb-2" onclick="showReservoirStatus()">Показать статус месторождения</button>
+                            <button class="btn btn-info w-100 mb-2" onclick="showWellStatus()">Показать статус скважины</button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="daysCount" class="form-label">Рассчитать добычу за N дней</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="daysCount" placeholder="30">
+                                <button class="btn btn-primary" onclick="calculateProduction()">Рассчитать</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Разовая добыча</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Нефть (тонн)</span>
+                                <input type="number" class="form-control" id="oilAmount" step="0.1" placeholder="50">
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Газ (м³)</span>
+                                <input type="number" class="form-control" id="gasAmount" step="0.1" placeholder="5000">
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="singleProduction()">Произвести добычу</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка статистики -->
+            <div class="tab-pane fade" id="stats" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="oilChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="pressureChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateCharts()">Обновить графики</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Глобальные переменные
+        let reservoir = null;
+        let well = null;
+        let oilChart = null;
+        let pressureChart = null;
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+
+        // Инициализация графиков
+        function initializeCharts() {
+            const oilCtx = document.getElementById('oilChart').getContext('2d');
+            oilChart = new Chart(oilCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Добыча нефти (тонн)',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Динамика добычи нефти',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+
+            const pressureCtx = document.getElementById('pressureChart').getContext('2d');
+            pressureChart = new Chart(pressureCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Давление (атм)',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Динамика давления в пласте',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Обновление графиков
+        function updateCharts() {
+            if (!reservoir || !reservoir.productionHistory || reservoir.productionHistory.length === 0) {
+                alert("Нет данных для построения графиков. Сначала произведите добычу.");
+                return;
+            }
+
+            const days = Array.from({length: reservoir.productionHistory.length}, (_, i) => `День ${i+1}`);
+            const oilData = reservoir.productionHistory.map(p => p.oil);
+            const pressureData = reservoir.productionHistory.map(p => p.pressure);
+
+            oilChart.data.labels = days;
+            oilChart.data.datasets[0].data = oilData;
+            oilChart.update();
+
+            pressureChart.data.labels = days;
+            pressureChart.data.datasets[0].data = pressureData;
+            pressureChart.update();
+        }
+
+        // Класс месторождения
+        class Reservoir {
+            constructor(name, initialPressure, oilVolume, gasVolume) {
+                this.name = name;
+                this.initialPressure = initialPressure;
+                this.currentPressure = initialPressure;
+                this.oilVolume = oilVolume;
+                this.gasVolume = gasVolume;
+                this.productionHistory = [];
+            }
+
+            produce(amountOil, amountGas) {
+                if (amountOil > this.oilVolume || amountGas > this.gasVolume) {
+                    throw new Error("Недостаточно ресурсов в месторождении");
+                }
+
+                this.oilVolume -= amountOil;
+                this.gasVolume -= amountGas;
+                const pressureDrop = (amountOil / (this.oilVolume + amountOil)) * this.currentPressure * 0.1;
+                this.currentPressure -= pressureDrop;
+                this.productionHistory.push({
+                    oil: amountOil,
+                    gas: amountGas,
+                    pressure: this.currentPressure,
+                    date: new Date().toLocaleDateString()
+                });
+
+                return {oil: amountOil, gas: amountGas};
+            }
+
+            getStatus() {
+                const totalProduced = this.productionHistory.reduce((sum, p) => sum + p.oil, 0);
+                const initialTotal = this.oilVolume + totalProduced;
+                const depletion = initialTotal === 0 ? 0 : (totalProduced / initialTotal) * 100;
+
+                return {
+                    "Название": this.name,
+                    "Текущее давление (атм)": this.currentPressure.toFixed(2),
+                    "Остаток нефти (тонн)": this.oilVolume.toFixed(2),
+                    "Остаток газа (м³)": this.gasVolume.toFixed(2),
+                    "Процент выработки (%)": depletion.toFixed(2),
+                    "Всего добыто нефти (тонн)": totalProduced.toFixed(2)
+                };
+            }
+        }
+
+        // Класс скважины
+        class Well {
+            constructor(name, reservoir, maxProductionRate) {
+                this.name = name;
+                this.reservoir = reservoir;
+                this.maxProductionRate = maxProductionRate;
+                this.isActive = true;
+            }
+
+            calculateProduction(days, currentDay = 0, totalOil = 0, totalGas = 0) {
+                if (currentDay >= days || !this.isActive) {
+                    return {oil: totalOil, gas: totalGas};
+                }
+
+                const pressureFactor = this.reservoir.currentPressure / this.reservoir.initialPressure;
+                const possibleOil = Math.min(
+                    this.maxProductionRate * pressureFactor,
+                    this.reservoir.oilVolume
+                );
+                const possibleGas = Math.min(
+                    this.maxProductionRate * 1000 * pressureFactor,
+                    this.reservoir.gasVolume
+                );
+
+                if (possibleOil <= 0 || possibleGas <= 0) {
+                    this.isActive = false;
+                    return {oil: totalOil, gas: totalGas};
+                }
+
+                const {oil, gas} = this.reservoir.produce(possibleOil, possibleGas);
+
+                return this.calculateProduction(days, currentDay + 1, totalOil + oil, totalGas + gas);
+            }
+
+            getStatus() {
+                return {
+                    "Название скважины": this.name,
+                    "Статус": this.isActive ? "Активна" : "Неактивна",
+                    "Максимальная добыча (тонн/сутки)": this.maxProductionRate,
+                    "Месторождение": this.reservoir.name,
+                    "Текущее давление (атм)": this.reservoir.currentPressure.toFixed(2)
+                };
+            }
+        }
+
+        // Создание месторождения
+        function createReservoir() {
+            try {
+                const name = document.getElementById('reservoirName').value;
+                const pressure = parseFloat(document.getElementById('initialPressure').value);
+                const oil = parseFloat(document.getElementById('oilVolume').value);
+                const gas = parseFloat(document.getElementById('gasVolume').value);
+
+                if (!name || isNaN(pressure) || isNaN(oil) || isNaN(gas)) {
+                    throw new Error("Заполните все поля корректными значениями");
+                }
+
+                reservoir = new Reservoir(name, pressure, oil, gas);
+                alert(`Месторождение "${name}" успешно создано!\nНачальное давление: ${pressure} атм\nЗапасы нефти: ${oil} тонн\nЗапасы газа: ${gas} м³`);
+
+                // Активируем вкладку операций
+                const operationsTab = new bootstrap.Tab(document.getElementById('operations-tab'));
+                operationsTab.show();
+            } catch (e) {
+                alert(`Ошибка: ${e.message}`);
+            }
+        }
+
+        // Создание скважины
+        function createWell() {
+            if (!reservoir) {
+                alert("Сначала создайте месторождение!");
+                return;
+            }
+
+            try {
+                const name = document.getElementById('wellName').value;
+                const rate = parseFloat(document.getElementById('maxProduction').value);
+
+                if (!name || isNaN(rate)) {
+                    throw new Error("Заполните все поля корректными значениями");
+                }
+
+                well = new Well(name, reservoir, rate);
+                alert(`Скважина "${name}" успешно создана!\nМаксимальная добыча: ${rate} тонн/сутки`);
+            } catch (e) {
+                alert(`Ошибка: ${e.message}`);
+            }
+        }
+
+        // Показать статус месторождения
+        function showReservoirStatus() {
+            if (!reservoir) {
+                alert("Месторождение не создано!");
+                return;
+            }
+
+            const status = reservoir.getStatus();
+            let statusText = "";
+            for (const [key, value] of Object.entries(status)) {
+                statusText += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+
+            document.getElementById('statusText').innerHTML = statusText;
+        }
+
+        // Показать статус скважины
+        function showWellStatus() {
+            if (!well) {
+                alert("Скважина не создана!");
+                return;
+            }
+
+            const status = well.getStatus();
+            let statusText = "";
+            for (const [key, value] of Object.entries(status)) {
+                statusText += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+
+            document.getElementById('statusText').innerHTML = statusText;
+        }
+
+        // Расчет добычи
+        function calculateProduction() {
+            if (!well) {
+                alert("Скважина не создана!");
+                return;
+            }
+
+            try {
+                const days = parseInt(document.getElementById('daysCount').value);
+                if (isNaN(days) || days < 1) {
+                    throw new Error("Введите корректное количество дней");
+                }
+
+                const {oil, gas} = well.calculateProduction(days);
+
+                document.getElementById('statusText').innerHTML =
+                    `<p><strong>Добыто за ${days} дней:</strong></p>` +
+                    `<p>Нефть: ${oil.toFixed(2)} тонн</p>` +
+                    `<p>Газ: ${gas.toFixed(2)} м³</p>`;
+
+                updateCharts();
+
+                // Активируем вкладку статистики
+                const statsTab = new bootstrap.Tab(document.getElementById('stats-tab'));
+                statsTab.show();
+            } catch (e) {
+                alert(`Ошибка: ${e.message}`);
+            }
+        }
+
+        // Разовая добыча
+        function singleProduction() {
+            if (!reservoir) {
+                alert("Месторождение не создано!");
+                return;
+            }
+
+            try {
+                const oil = parseFloat(document.getElementById('oilAmount').value);
+                const gas = parseFloat(document.getElementById('gasAmount').value);
+
+                if (isNaN(oil) || isNaN(gas)) {
+                    throw new Error("Введите корректные значения для нефти и газа");
+                }
+
+                const {oil: producedOil, gas: producedGas} = reservoir.produce(oil, gas);
+
+                document.getElementById('statusText').innerHTML =
+                    `<p><strong>Добыто:</strong></p>` +
+                    `<p>Нефть: ${producedOil.toFixed(2)} тонн</p>` +
+                    `<p>Газ: ${producedGas.toFixed(2)} м³</p>`;
+
+                updateCharts();
+
+                // Активируем вкладку статистики
+                const statsTab = new bootstrap.Tab(document.getElementById('stats-tab'));
+                statsTab.show();
+            } catch (e) {
+                alert(`Ошибка добычи: ${e.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
